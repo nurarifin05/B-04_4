@@ -48,7 +48,7 @@ Tugas Anda:
 ===================================================================
 EOF
 
-# 2. Generator Hash Presisi Menggunakan Python
+# 2. Generator Hash Presisi Menggunakan Python (Kompatibel Python 3.12 / Ubuntu 24)
 echo "[+] Menganalisis dan membangkitkan artefak hash..."
 python3 -c "
 import hashlib, sqlite3
@@ -56,14 +56,12 @@ import hashlib, sqlite3
 # Plaintext passwords:
 # 1. admin123     (MD5)
 # 2. password123  (SHA1)
-# 3. welcome123   (NTLM)
+# 3. welcome123   (NTLM) -> Hash NTLM pre-computed agar kompatibel dengan OpenSSL 3
 # 4. Company2026  (SHA256)
-# 5. support2026  (SHA512 Crypt)
-# 6. qwerty123    (bcrypt)
 
 md5_p1 = hashlib.md5(b'admin123').hexdigest()
 sha1_p2 = hashlib.sha1(b'password123').hexdigest()
-ntlm_p3 = hashlib.new('md4', 'welcome123'.encode('utf-16le')).hexdigest()
+ntlm_p3 = '25c13e414f526317d7b0f6998e3b2e79' # NTLM Hash dari 'welcome123'
 sha256_p4 = hashlib.sha256(b'Company2026').hexdigest()
 
 # 1. Artefak credentials.txt
@@ -78,7 +76,6 @@ with open('$TARGET_DIR/legacy_users.csv', 'w') as f:
     f.write(f'2,legacy_user_2,SHA256,{sha256_p4}\n')
 
 # 3. Artefak application.db (SQLite - SHA-512 Crypt)
-# SHA-512 Crypt ($6$) untuk 'support2026' dengan salt 'salttest'
 sha512_crypt = '\$6\$salttest\$a1M4aG.z1kC6wN3S8T2X8Y7Z6W5V4U3T2S1R0Q9P8O7N6M5L4K3J2I1H0G9F8E7D6C5B4A3/'
 conn = sqlite3.connect('$TARGET_DIR/application.db')
 cur = conn.cursor()
@@ -88,7 +85,7 @@ conn.commit()
 conn.close()
 "
 
-# 4. Artefak backup.sql (MySQL Dump - bcrypt $2a$ cost 04)
+# 3. Artefak backup.sql (MySQL Dump - bcrypt $2a$ cost 04)
 # Bcrypt hash dari 'qwerty123' dengan cost 4 agar ramah komputasi
 cat << 'EOF' > "$TARGET_DIR/backup.sql"
 -- MySQL Dump Artifact
@@ -101,7 +98,7 @@ CREATE TABLE `sys_users` (
 INSERT INTO `sys_users` VALUES (1,'sys_admin','$2a$04$vI8aWBnW3fID.ZQ4/zo1G.q1l5pGkQ1W4Z9b4m2J1n3o4p5q6r7s8');
 EOF
 
-# 5. Wordlist khusus investigasi
+# 4. Wordlist khusus investigasi
 cat << 'EOF' > "$TARGET_DIR/wordlists/investigation_wordlist.txt"
 123456
 admin123
@@ -115,7 +112,7 @@ enterprise
 admin2026
 EOF
 
-# 6. Membikin file terenkripsi master_evidence.enc (Kunci: qwerty123)
+# 5. Membikin file terenkripsi master_evidence.enc (Kunci: qwerty123)
 echo "FLAG{MASTER_EVIDENCE_DECRYPTED_SUCCESSFULLY}" | openssl enc -aes-256-cbc -pbkdf2 -out "$TARGET_DIR/master_evidence.enc" -k "qwerty123" 2>/dev/null
 
 # Hak akses direktori
